@@ -29,10 +29,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import junit.framework.Assert;
-import junit.framework.TestCase;
-
 import org.apache.commons.io.IOUtils;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.zimbra.client.ZContact;
@@ -74,13 +74,13 @@ import com.zimbra.soap.account.message.ImapMessageInfo;
 import com.zimbra.soap.account.message.OpenIMAPFolderResponse;
 import com.zimbra.soap.mail.message.ItemActionResponse;
 
-public class TestZClient extends TestCase {
+public class TestZClient {
     private static String NAME_PREFIX = "TestZClient";
     private static String RECIPIENT_USER_NAME = NAME_PREFIX + "_user2";
     private static final String USER_NAME = NAME_PREFIX + "_user1";
     private static final String FOLDER_NAME = "testfolder";
 
-    @Override
+    @Before
     public void setUp()
     throws Exception {
         if (!TestUtil.fromRunUnitTests) {
@@ -91,25 +91,34 @@ public class TestZClient extends TestCase {
         TestUtil.createAccount(RECIPIENT_USER_NAME);
     }
 
+    @After
+    public void cleanUp() throws Exception {
+        TestUtil.deleteAccountIfExists(USER_NAME);
+        TestUtil.deleteAccountIfExists(RECIPIENT_USER_NAME);
+    }
+
     /**
      * Confirms that the prefs accessor works (bug 51384).
      */
+    @Test
     public void testPrefs() throws Exception {
         Account account = TestUtil.getAccount(USER_NAME);
         ZMailbox mbox = TestUtil.getZMailbox(USER_NAME);
         ZPrefs prefs = mbox.getPrefs();
-        assertEquals(account.getPrefLocale(), prefs.getLocale());
+        Assert.assertEquals(account.getPrefLocale(), prefs.getLocale());
     }
 
     /**
      * Confirms that the features accessor doesn't throw NPE (bug 51384).
      */
+    @Test
     public void testFeatures() throws Exception {
         ZMailbox mbox = TestUtil.getZMailbox(USER_NAME);
         ZFeatures features = mbox.getFeatures();
         features.getPop3Enabled();
     }
 
+    @Test
     public void testChangePassword() throws Exception {
         Account account = TestUtil.getAccount(USER_NAME);
         Options options = new Options();
@@ -123,10 +132,11 @@ public class TestZClient extends TestCase {
         try {
             TestUtil.getZMailbox(USER_NAME);
         } catch (SoapFaultException e) {
-            assertEquals(AuthFailedServiceException.AUTH_FAILED, e.getCode());
+            Assert.assertEquals(AuthFailedServiceException.AUTH_FAILED, e.getCode());
         }
     }
 
+    @Test
     public void testGetLastItemIdInMailbox() throws Exception {
         int numMessages = 10;
         ZMailbox zmbox = TestUtil.getZMailbox(USER_NAME);
@@ -135,13 +145,14 @@ public class TestZClient extends TestCase {
             TestUtil.addMessage(zmbox, String.format("test message %d", i));
         }
         int lItemIdZMbox1 = zmbox.getLastItemIdInMailbox();
-        assertEquals(lItemIdZMbox0 + numMessages, lItemIdZMbox1);
+        Assert.assertEquals(lItemIdZMbox0 + numMessages, lItemIdZMbox1);
     }
 
     /**
      * Confirms that the {@code List} of signatures returned by {@link ZMailbox#getSignatures}
      * is modifiable (see bug 51842).
      */
+    @Test
     public void testModifySignatures() throws Exception {
         ZMailbox mbox = TestUtil.getZMailbox(USER_NAME);
         List<ZSignature> signatures = mbox.getSignatures();
@@ -160,6 +171,7 @@ public class TestZClient extends TestCase {
         }
     }
 
+    @Test
     public void testCopyItemAction() throws Exception {
         ZMailbox mbox = TestUtil.getZMailbox(USER_NAME);
         String sender = TestUtil.getAddress(USER_NAME);
@@ -391,8 +403,8 @@ public class TestZClient extends TestCase {
         // the cutoff value
         int imapRecentCutoff1 = testFolder.getImapRECENTCutoff(false);
 
-        assertEquals(folderIdInMailbox, imapRecentCutoff0);
-        assertEquals(folderIdInMailbox + 1, imapRecentCutoff1);
+        Assert.assertEquals(folderIdInMailbox, imapRecentCutoff0);
+        Assert.assertEquals(folderIdInMailbox + 1, imapRecentCutoff1);
     }
 
     @Test
@@ -412,45 +424,45 @@ public class TestZClient extends TestCase {
 
         params.setLimit(100); //test fetching all results
         OpenIMAPFolderResponse result = zmbox.fetchImapFolderChunk(params);
-        assertEquals(10, result.getImapMessageInfo().size());
-        assertFalse(result.getHasMore());
+        Assert.assertEquals(10, result.getImapMessageInfo().size());
+        Assert.assertFalse(result.getHasMore());
 
         params.setLimit(5); //test fetching first 5
         result = zmbox.fetchImapFolderChunk(params);
         List<ImapMessageInfo> messages = result.getImapMessageInfo();
-        assertEquals(5, messages.size());
+        Assert.assertEquals(5, messages.size());
         for (int i = 0; i < messages.size(); i++) {
-            assertEquals(messages.get(i).getId(), (Integer) expected.get(i).getMsgId());
+            Assert.assertEquals(messages.get(i).getId(), (Integer) expected.get(i).getMsgId());
         }
-        assertTrue(result.getHasMore());
+        Assert.assertTrue(result.getHasMore());
 
         Integer cursorId = expected.get(2).getMsgId(); //test fetching 5 items starting at 3rd item, (more results left)
         params.setCursorId(String.valueOf(cursorId));
         result = zmbox.fetchImapFolderChunk(params);
         messages = result.getImapMessageInfo();
-        assertEquals(5, messages.size());
+        Assert.assertEquals(5, messages.size());
         for (int i = 0; i < messages.size(); i++) {
-            assertEquals(messages.get(i).getId(), (Integer) expected.get(i+3).getMsgId());
+            Assert.assertEquals(messages.get(i).getId(), (Integer) expected.get(i+3).getMsgId());
         }
-        assertTrue(result.getHasMore());
+        Assert.assertTrue(result.getHasMore());
 
         cursorId = expected.get(6).getMsgId();//test fetching 5 items starting at 7th item, exhausting all results
         params.setCursorId(String.valueOf(cursorId));
         result = zmbox.fetchImapFolderChunk(params);
         messages = result.getImapMessageInfo();
-        assertEquals(3, messages.size());
+        Assert.assertEquals(3, messages.size());
         for (int i = 0; i < messages.size(); i++) {
-            assertEquals(messages.get(i).getId(), (Integer) expected.get(i+7).getMsgId());
+            Assert.assertEquals(messages.get(i).getId(), (Integer) expected.get(i+7).getMsgId());
         }
-        assertFalse(result.getHasMore());
+        Assert.assertFalse(result.getHasMore());
 
         //test getting all messages in batches of 3, so pagination is used
         List<ImapMessageInfo> actual = zmbox.openImapFolder(folderId, 3);
         Collections.sort(expected);
         Collections.sort(actual);
-        assertEquals("expected and actual lists have different lengths", expected.size(), actual.size());
+        Assert.assertEquals("expected and actual lists have different lengths", expected.size(), actual.size());
         for (int i = 0; i < expected.size(); i++) {
-            assertEquals((Integer) expected.get(i).getImapUid(), actual.get(i).getImapUid());
+            Assert.assertEquals((Integer) expected.get(i).getImapUid(), actual.get(i).getImapUid());
         }
     }
 
@@ -462,23 +474,23 @@ public class TestZClient extends TestCase {
         int folderId = folder.getId();
         int lastChange = mbox.getLastChangeID();
         List<Integer> modifiedIds = zmbox.getIdsOfModifiedItemsInFolder(null, lastChange, folderId);
-        assertNotNull("getIdsOfModifiedItemsInFolder should not return null", modifiedIds);
-        assertTrue("getIdsOfModifiedItemsInFolder should return an empty list given the last change number", modifiedIds.isEmpty());
+        Assert.assertNotNull("getIdsOfModifiedItemsInFolder should not return null", modifiedIds);
+        Assert.assertTrue("getIdsOfModifiedItemsInFolder should return an empty list given the last change number", modifiedIds.isEmpty());
         List<Integer> expected = new LinkedList<Integer>();
         for (int i = 1; i <= 10; i++) {
             Message msg = TestUtil.addMessage(mbox, folderId, String.format("testGetIdsOfModifiedItemsInFolder message %s", i), System.currentTimeMillis());
             expected.add(msg.getId());
         }
         modifiedIds = zmbox.getIdsOfModifiedItemsInFolder(null, lastChange, folderId);
-        assertEquals(String.format("should return the same number of IDs as the number of added messages. Added %d messages, but returned %d IDs", expected.size(), modifiedIds.size()), expected.size(), modifiedIds.size());
+        Assert.assertEquals(String.format("should return the same number of IDs as the number of added messages. Added %d messages, but returned %d IDs", expected.size(), modifiedIds.size()), expected.size(), modifiedIds.size());
         for(Integer mId : expected) {
-            assertTrue(modifiedIds.contains(mId));
+            Assert.assertTrue(modifiedIds.contains(mId));
         }
         lastChange = mbox.getLastChangeID();
         Message msg = TestUtil.addMessage(mbox, folderId, "testGetIdsOfModifiedItemsInFolder last message", System.currentTimeMillis());
         modifiedIds = zmbox.getIdsOfModifiedItemsInFolder(null, lastChange, folderId);
-        assertEquals(1, modifiedIds.size());
-        assertEquals(Integer.valueOf(msg.getId()), modifiedIds.get(0));
+        Assert.assertEquals(1, modifiedIds.size());
+        Assert.assertEquals(Integer.valueOf(msg.getId()), modifiedIds.get(0));
     }
 
     @Test
@@ -488,9 +500,9 @@ public class TestZClient extends TestCase {
         try {
             zmbox.beginTrackingImap();
         } catch (ServiceException e) {
-            fail("beginTrackingImap should succeed");
+            Assert.fail("beginTrackingImap should succeed");
         }
-        assertTrue(mbox.isTrackingImap());
+        Assert.assertTrue(mbox.isTrackingImap());
     }
 
     @Test
@@ -504,12 +516,12 @@ public class TestZClient extends TestCase {
         try {
             Message msg = TestUtil.addMessage(mbox, folderId, "testImapRecent message", System.currentTimeMillis());
             int recent = zmbox.getImapRECENT(Integer.toString(folderId));
-            assertEquals(1, recent);
+            Assert.assertEquals(1, recent);
         } catch (ServiceException e) {
-            fail("getIMAPRecent should not fail");
+            Assert.fail("getIMAPRecent should not fail");
         }
         catch (Exception e) {
-            fail("getIMAPRecent should not fail");
+            Assert.fail("getIMAPRecent should not fail");
         }
     }
 
@@ -562,40 +574,47 @@ public class TestZClient extends TestCase {
 
         //add tag via zmailbox
         zmbox.alterTag(null, ids, tag.getName(), true);
-        assertTrue(msg.isTagged(tag.getName()));
+        Assert.assertTrue(String.format("Message should have been tagged '%s'", tag.getName()),
+                msg.isTagged(tag.getName()));
 
         //remove tag via zmailbox
         zmbox.alterTag(null, ids, tag.getName(), false);
-        assertFalse(msg.isTagged(tag.getName()));
+        Assert.assertFalse(String.format("Message should NOT have been tagged '%s'", tag.getName()),
+                msg.isTagged(tag.getName()));
 
         //test setting/unsetting unread flag
         zmbox.alterTag(null, ids, "\\Unread", true);
-        assertTrue(msg.isUnread());
+        Assert.assertTrue("msg.isUnread() value after setting true using ZMailbox", msg.isUnread());
         zmbox.alterTag(null, ids, "\\Unread", false);
-        assertFalse(msg.isUnread());
+        Assert.assertFalse("msg.isUnread() value after setting false using ZMailbox", msg.isUnread());
     }
 
     @Test
     public void testSetTags() throws Exception {
         ZMailbox zmbox = TestUtil.getZMailbox(USER_NAME);
         Mailbox mbox = TestUtil.getMailbox(USER_NAME);
-        Message msg = TestUtil.addMessage(mbox, Mailbox.ID_FOLDER_INBOX, "testAlterTag message", System.currentTimeMillis());
-        ZTag tag1 = zmbox.createTag("testSetTags tag1", ZTag.Color.blue);
+        Message msg = TestUtil.addMessage(mbox, Mailbox.ID_FOLDER_INBOX, "testAlterTag message",
+                System.currentTimeMillis());
+        String tag1Name = "testSetTags tag1";
+        String tag2Name = "testSetTags tag2";
+        String tag3Name = "testSetTags tag3";
+        ZTag tag1 = zmbox.createTag(tag1Name, ZTag.Color.blue);
         Collection<ItemIdentifier> ids = new ArrayList<ItemIdentifier>(1);
         ids.add(new ItemIdentifier(mbox.getAccountId(), msg.getId()));
 
         //add tag via zmailbox
         zmbox.alterTag(null, ids, tag1.getName(), true);
-        assertTrue(msg.isTagged(tag1.getName()));
+        Assert.assertTrue(String.format("Message should have been tagged '%s'", tag1Name),
+                msg.isTagged(tag1.getName()));
 
         //override via setTags
         Collection<String> newTags = new ArrayList<String>();
-        newTags.add("testSetTags tag2");
-        newTags.add("testSetTags tag3");
+        newTags.add(tag2Name);
+        newTags.add(tag3Name);
         zmbox.setTags(null, ids, 0, newTags);
-        assertFalse(msg.isTagged("testSetTags tag1"));
-        assertTrue(msg.isTagged("testSetTags tag2"));
-        assertTrue(msg.isTagged("testSetTags tag3"));
+        Assert.assertFalse(String.format("Message should NOT have been tagged '%s'", tag1Name), msg.isTagged(tag1Name));
+        Assert.assertTrue(String.format("Message should have been tagged '%s'", tag2Name), msg.isTagged(tag2Name));
+        Assert.assertTrue(String.format("Message should have been tagged '%s'", tag3Name), msg.isTagged(tag3Name));
     }
 
     @Test
@@ -613,8 +632,8 @@ public class TestZClient extends TestCase {
     }
 
     private void compareMsgAndZMsg(String testname, Message msg, ZMessage zmsg) throws IOException, ServiceException {
-        assertNotNull("Message is null", msg);
-        assertNotNull("ZMessage is null", zmsg);
+        Assert.assertNotNull("Message is null", msg);
+        Assert.assertNotNull("ZMessage is null", zmsg);
         String msgContent = null;
         String zmsgContent = null;
         try (InputStream msgContentStream = msg.getContentStream()) {
@@ -650,21 +669,6 @@ public class TestZClient extends TestCase {
         List<Integer> expectedNonExistentIds = new ArrayList<Integer>(1);
         expectedNonExistentIds.add(300);
         assertEquals("Non-Existent IDs should be: ", expectedNonExistentIds, nonExistentIds);
-    }
-
-    @Override
-    public void tearDown()
-    throws Exception {
-        cleanUp();
-    }
-
-    private void cleanUp() throws Exception {
-        if(TestUtil.accountExists(USER_NAME)) {
-            TestUtil.deleteAccount(USER_NAME);
-        }
-        if(TestUtil.accountExists(RECIPIENT_USER_NAME)) {
-            TestUtil.deleteAccount(RECIPIENT_USER_NAME);
-        }
     }
 
     public static void main(String[] args)
