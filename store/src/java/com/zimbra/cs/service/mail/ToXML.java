@@ -1427,16 +1427,7 @@ public final class ToXML {
         boolean success = false;
         try {
             boolean wholeMessage = part == null || part.trim().isEmpty();
-            if (wholeMessage) {
-                m = encodeMessageCommon(parent, ifmt, octxt, msg, NOTIFY_FIELDS, serializeType);
-                m.addAttribute(MailConstants.A_ID, ifmt.formatItemId(msg));
-                m.addAttribute(MailConstants.A_IMAP_UID, msg.getImapUid());
-            } else {
-                m = parent.addNonUniqueElement(MailConstants.E_MSG);
-                m.addAttribute(MailConstants.A_ID, ifmt.formatItemId(msg));
-                m.addAttribute(MailConstants.A_PART, part);
-            }
-
+            m = encodeMsgCommonAndIdInfo(parent, ifmt, octxt, msg, part, serializeType, wantImapUid);
             MimeMessage mm = null;
             try {
                 String requestedAccountId = octxt.getmRequestedAccountId();
@@ -1631,6 +1622,25 @@ public final class ToXML {
                 m.detach();
             }
         }
+    }
+
+    private static Element encodeMsgCommonAndIdInfo(Element parent, ItemIdFormatter ifmt, OperationContext octxt,
+            Message msg, String part, boolean serializeType, boolean wantImapUid)
+                    throws ServiceException {
+        Element m = null;
+        boolean wholeMessage = part == null || part.trim().isEmpty();
+        if (wholeMessage) {
+            m = encodeMessageCommon(parent, ifmt, octxt, msg, NOTIFY_FIELDS, serializeType);
+            m.addAttribute(MailConstants.A_ID, ifmt.formatItemId(msg));
+        } else {
+            m = parent.addNonUniqueElement(MailConstants.E_MSG);
+            m.addAttribute(MailConstants.A_ID, ifmt.formatItemId(msg));
+            m.addAttribute(MailConstants.A_PART, part);
+        }
+        if (wantImapUid) {
+            m.addAttribute(MailConstants.A_IMAP_UID, msg.getImapUid());
+        }
+        return m;
     }
 
     /**
@@ -1971,37 +1981,13 @@ public final class ToXML {
     private static final String CONTENT_SERVLET_URI = "/service/content/get?id=";
     private static final String PART_PARAM_STRING   = "&part=";
 
-    /**
-     * Encodes a Message object into <m> element with standard MIME content.
-     */
     public static Element encodeMessageAsMIME(Element parent, ItemIdFormatter ifmt, OperationContext octxt,
-            Message msg, String part, boolean serializeType)
-    throws ServiceException {
-        return encodeMessageAsMIME(parent, ifmt, octxt, msg, part, false, serializeType);
-    }
-
-    public static Element encodeMessageAsMIME(Element parent, ItemIdFormatter ifmt, OperationContext octxt,
-            Message msg, String part, boolean mustInline, boolean serializeType)
-    throws ServiceException {
-         return encodeMessageAsMIME(parent, ifmt, octxt,
-                 msg, part, mustInline, false /* mustNotInline */, serializeType);
-    }
-
-    public static Element encodeMessageAsMIME(Element parent, ItemIdFormatter ifmt, OperationContext octxt,
-            Message msg, String part, boolean mustInline, boolean mustNotInline, boolean serializeType)
+            Message msg, String part, boolean mustInline, boolean mustNotInline, boolean serializeType,
+            boolean wantImapUid)
     throws ServiceException {
         boolean wholeMessage = (part == null || part.trim().isEmpty());
 
-        Element m;
-        if (wholeMessage) {
-            m = encodeMessageCommon(parent, ifmt, octxt, msg, NOTIFY_FIELDS, serializeType);
-            m.addAttribute(MailConstants.A_ID, ifmt.formatItemId(msg));
-        } else {
-            m = parent.addNonUniqueElement(MailConstants.E_MSG);
-            m.addAttribute(MailConstants.A_ID, ifmt.formatItemId(msg));
-            m.addAttribute(MailConstants.A_PART, part);
-        }
-
+        Element m = encodeMsgCommonAndIdInfo(parent, ifmt, octxt, msg, part, serializeType, wantImapUid);
         Element content = m.addUniqueElement(MailConstants.E_CONTENT);
         long size = msg.getSize() + 2048;
         if (!wholeMessage) {
