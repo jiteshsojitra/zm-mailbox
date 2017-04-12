@@ -1323,11 +1323,23 @@ public final class ToXML {
      * @throws ServiceException */
     public static Element encodeMessageAsMP(Element parent, ItemIdFormatter ifmt,
             OperationContext octxt, Message msg, String part, int maxSize, boolean wantHTML,
-            boolean neuter, Set<String> headers, boolean serializeType, boolean wantExpandGroupInfo, boolean encodeMissingBlobs)
+            boolean neuter, Set<String> headers, boolean serializeType, boolean wantExpandGroupInfo,
+            boolean encodeMissingBlobs)
     throws ServiceException {
         return encodeMessageAsMP(parent, ifmt, octxt, msg, part, maxSize, wantHTML, neuter,
-            headers, serializeType, wantExpandGroupInfo, encodeMissingBlobs,
+            headers, serializeType, wantExpandGroupInfo, encodeMissingBlobs, false /* wantImapUid */,
             MsgContent.full);
+    }
+
+    public static Element encodeMessageAsMP(Element parent, ItemIdFormatter ifmt,
+            OperationContext octxt, Message msg, String part, int maxSize, boolean wantHTML,
+            boolean neuter, Set<String> headers, boolean serializeType, boolean wantExpandGroupInfo,
+            boolean encodeMissingBlobs, MsgContent wantContent)
+    throws ServiceException {
+        return encodeMessageAsMP(parent, ifmt,
+            octxt, msg, part, maxSize, wantHTML,
+            neuter, headers, serializeType, wantExpandGroupInfo,
+            encodeMissingBlobs, false /* wantImapUid */, wantContent);
     }
 
     /** Encodes a Message object into <m> element with <mp> elements for
@@ -1340,6 +1352,7 @@ public final class ToXML {
      * @param maxSize TODO
      * @param wantHTML  <tt>true</tt> to prefer HTML parts as the "body",
      *                  <tt>false</tt> to prefer text/plain parts.
+     * @param wantImapUid <tt>true</tt> if response should include the IMAP UID.
      * @param neuter  Whether to rename "src" attributes on HTML <img> tags.
      * @param headers Extra message headers to include in the returned element.
      * @param serializeType If <tt>false</tt>, always serializes as an
@@ -1350,14 +1363,15 @@ public final class ToXML {
     public static Element encodeMessageAsMP(Element parent, ItemIdFormatter ifmt,
             OperationContext octxt, Message msg, String part, int maxSize, boolean wantHTML,
             boolean neuter, Set<String> headers, boolean serializeType, boolean wantExpandGroupInfo,
-            boolean encodeMissingBlobs, MsgContent wantContent)
+            boolean encodeMissingBlobs, boolean wantImapUid, MsgContent wantContent)
     throws ServiceException {
         Mailbox mbox = msg.getMailbox();
         int changeId = msg.getSavedSequence();
         while (true) {
             try {
                 return encodeMessageAsMPHelper(false /* bestEffort */, parent, ifmt, octxt, msg, part, maxSize,
-                        wantHTML, neuter, headers, serializeType, wantExpandGroupInfo, encodeMissingBlobs, wantContent);
+                        wantHTML, neuter, headers, serializeType, wantExpandGroupInfo, encodeMissingBlobs, wantImapUid,
+                        wantContent);
             } catch (ServiceException e) {
                 // problem writing the message structure to the response
                 //   (this case generally means that the blob backing the MimeMessage disappeared halfway through)
@@ -1378,7 +1392,8 @@ public final class ToXML {
                 // best we can do now is send back what we got and apologize.
                 ZimbraLog.soap.warn("could not serialize full message structure in response", e);
                 return encodeMessageAsMPHelper(true /* bestEffort */, parent, ifmt, octxt, msg, part, maxSize,
-                        wantHTML, neuter, headers, serializeType, wantExpandGroupInfo, encodeMissingBlobs, wantContent);
+                        wantHTML, neuter, headers, serializeType, wantExpandGroupInfo, encodeMissingBlobs, wantImapUid,
+                        wantContent);
             }
         }
     }
@@ -1393,6 +1408,7 @@ public final class ToXML {
      * @param maxSize TODO
      * @param wantHTML  <tt>true</tt> to prefer HTML parts as the "body",
      *                  <tt>false</tt> to prefer text/plain parts.
+     * @param wantImapUid <tt>true</tt> if response should include the IMAP UID.
      * @param neuter  Whether to rename "src" attributes on HTML <img> tags.
      * @param headers Extra message headers to include in the returned element.
      * @param serializeType If <tt>false</tt>, always serializes as an
@@ -1405,7 +1421,7 @@ public final class ToXML {
     private static Element encodeMessageAsMPHelper(boolean bestEffort, Element parent, ItemIdFormatter ifmt,
             OperationContext octxt, Message msg, String part, int maxSize, boolean wantHTML,
             boolean neuter, Set<String> headers, boolean serializeType, boolean wantExpandGroupInfo,
-            boolean encodeMissingBlobs, MsgContent wantContent)
+            boolean encodeMissingBlobs, boolean wantImapUid, MsgContent wantContent)
     throws ServiceException {
         Element m = null;
         boolean success = false;
@@ -1414,6 +1430,7 @@ public final class ToXML {
             if (wholeMessage) {
                 m = encodeMessageCommon(parent, ifmt, octxt, msg, NOTIFY_FIELDS, serializeType);
                 m.addAttribute(MailConstants.A_ID, ifmt.formatItemId(msg));
+                m.addAttribute(MailConstants.A_IMAP_UID, msg.getImapUid());
             } else {
                 m = parent.addNonUniqueElement(MailConstants.E_MSG);
                 m.addAttribute(MailConstants.A_ID, ifmt.formatItemId(msg));
