@@ -1575,6 +1575,7 @@ public class ZMailbox implements ToZJSONObject, MailboxStore {
         if (sync) {
             req.addAttribute(MailConstants.A_SYNC, sync);
         }
+        req.addAttribute(MailConstants.A_WANT_IMAP_UID, true);
 
         if (attrs != null) {
             for (String name : attrs) {
@@ -1667,6 +1668,7 @@ public class ZMailbox implements ToZJSONObject, MailboxStore {
     public ZContact createContact(String folderId, String tags, Map<String, String> attrs, Map<String, ZAttachmentInfo> attachments, Map<String, String> members)
             throws ServiceException {
         Element req = newRequestElement(MailConstants.CREATE_CONTACT_REQUEST);
+        req.addAttribute(MailConstants.A_WANT_IMAP_UID, true);
         Element cn = req.addUniqueElement(MailConstants.E_CONTACT);
         if (folderId != null) {
             cn.addAttribute(MailConstants.A_FOLDER, folderId);
@@ -1757,6 +1759,7 @@ public class ZMailbox implements ToZJSONObject, MailboxStore {
     public ZContact modifyContact(String id, boolean replace, Map<String, String> attrs, Map<String, ZAttachmentInfo> attachments, Map<String, String> members)
             throws ServiceException {
         Element req = newRequestElement(MailConstants.MODIFY_CONTACT_REQUEST);
+        req.addAttribute(MailConstants.A_WANT_IMAP_UID, true);
         if (replace) {
             req.addAttribute(MailConstants.A_REPLACE, replace);
         }
@@ -1795,6 +1798,7 @@ public class ZMailbox implements ToZJSONObject, MailboxStore {
         if (sync) {
             req.addAttribute(MailConstants.A_SYNC, sync);
         }
+        req.addAttribute(MailConstants.A_WANT_IMAP_UID, true);
         if (!StringUtil.isNullOrEmpty(ids)) {
             req.addAttribute(MailConstants.A_DEREF_CONTACT_GROUP_MEMBER, true);
             req.addNonUniqueElement(MailConstants.E_CONTACT).addAttribute(MailConstants.A_ID, ids);
@@ -1837,6 +1841,7 @@ public class ZMailbox implements ToZJSONObject, MailboxStore {
         if (result == null || result.isDirty()) {
             Element req = newRequestElement(MailConstants.GET_CONTACTS_REQUEST);
             req.addAttribute(MailConstants.A_SYNC, true);
+            req.addAttribute(MailConstants.A_WANT_IMAP_UID, true);
             req.addNonUniqueElement(MailConstants.E_CONTACT).addAttribute(MailConstants.A_ID, id);
             req.addAttribute(MailConstants.A_DEREF_CONTACT_GROUP_MEMBER, true);
             result = new ZContact(invoke(req).getElement(MailConstants.E_CONTACT), this);
