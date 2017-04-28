@@ -279,6 +279,11 @@ public class TestZClient {
         Assert.assertTrue(
                 String.format("%s Not a ZContact when got with type CONTACT", mItemAsContact.getClass().getName()),
                 mItemAsContact instanceof ZContact);
+        ZContact zContact = (ZContact) mItemAsContact;
+        Assert.assertEquals("Imap UID of ZContact should be same as Contact",
+                contact.getImapUid(), zContact.getImapUid());
+        Assert.assertTrue(
+                String.format("IMAP UID %s of ZContact not 0", zContact.getImapUid()), 0 != zContact.getImapUid());
 
         /* getting message using contact id */
         try {
