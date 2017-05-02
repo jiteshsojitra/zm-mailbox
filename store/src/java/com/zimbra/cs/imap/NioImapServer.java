@@ -18,6 +18,8 @@ package com.zimbra.cs.imap;
 
 import java.util.Map;
 
+import javax.net.ssl.SSLContext;
+
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFactory;
 import org.apache.mina.filter.codec.ProtocolDecoder;
@@ -34,6 +36,7 @@ import com.zimbra.cs.server.NioHandler;
 import com.zimbra.cs.server.NioServer;
 import com.zimbra.cs.server.ServerThrottle;
 import com.zimbra.cs.stats.ZimbraPerf;
+import com.zimbra.cs.util.EhcacheManager;
 
 public final class NioImapServer extends NioServer implements ImapServer, RealtimeStatsCallback {
     private final NioImapDecoder decoder;
@@ -90,4 +93,15 @@ public final class NioImapServer extends NioServer implements ImapServer, Realti
         String threadStatName = getConfig().isSslEnabled() ? ZimbraPerf.RTS_IMAP_SSL_THREADS : ZimbraPerf.RTS_IMAP_THREADS;
         return ImmutableMap.of(connStatName, (Object) getNumConnections(), threadStatName, getNumThreads());
     }
+
+    protected static SSLContext initSSLContext() throws Exception {
+        // If running inside mailboxd, use default SSL context initialization, else
+        // provide the IMAP keystore path and password to the init code.
+        if (System.getProperty(ImapDaemon.IMAP_SERVER_EMBEDDED, "true").equals("false")) {
+            return NioServer.initSSLContext();
+        } else {
+            return initSSLContext(LC.imapd_keystore.value(), LC.imapd_keystore_password.value());
+        }
+    }
+
 }
