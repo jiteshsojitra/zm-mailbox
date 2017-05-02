@@ -107,12 +107,16 @@ public abstract class NioServer implements Server {
         return sslContext;
     }
 
-    private static SSLContext initSSLContext() throws Exception {
+    protected static SSLContext initSSLContext() throws Exception {
+        return initSSLContext(LC.mailboxd_keystore.value(), LC.mailboxd_keystore_password.value());
+    }
+
+    protected static SSLContext initSSLContext(String keystorePath, String password) throws Exception {
         FileInputStream fis = null;
         try {
 	        KeyStore ks = KeyStore.getInstance("JKS");
-	        char[] pass = LC.mailboxd_keystore_password.value().toCharArray();
-	        fis = new FileInputStream(LC.mailboxd_keystore.value());
+	        char[] pass = password.toCharArray();
+	        fis = new FileInputStream(keystorePath);
 	        ks.load(fis, pass);
 	        KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
 	        kmf.init(ks, pass);
